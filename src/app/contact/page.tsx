@@ -1,9 +1,41 @@
 "use client";
 
-import Link from "next/link";
 import { motion } from "framer-motion";
+import { useState } from "react";
+import { submitContactMessage } from "./actions";
 
 export default function Contact() {
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    projectType: "",
+    message: "",
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle");
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setSubmitStatus("idle");
+
+    try {
+      const result = await submitContactMessage(formData);
+
+      if (!result.ok) {
+        throw new Error("Contact insert failed");
+      }
+
+      setSubmitStatus("success");
+      setFormData({ name: "", email: "", projectType: "", message: "" });
+    } catch (error) {
+      console.error("Error submitting form:", error);
+      setSubmitStatus("error");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="pt-20">
       <section className="py-20 px-6">
@@ -188,12 +220,28 @@ export default function Contact() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-100px" }}
             transition={{ duration: 0.5 }}
-            action="https://formsubmit.co/allocode17@gmail.com"
-            method="POST"
+            onSubmit={handleSubmit}
             className="space-y-6"
           >
-            <input type="hidden" name="_subject" value="Nouveau projet depuis le site AlloCode" />
-            <input type="hidden" name="_captcha" value="false" />
+            {submitStatus === "success" && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="p-4 bg-green-900/50 border border-green-500 rounded-lg text-green-300"
+              >
+                Message envoyé avec succès ! Je vous répondrai rapidement.
+              </motion.div>
+            )}
+
+            {submitStatus === "error" && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="p-4 bg-red-900/50 border border-red-500 rounded-lg text-red-300"
+              >
+                Une erreur est survenue. Veuillez réessayer ou me contacter directement par email.
+              </motion.div>
+            )}
 
             <motion.div
               initial={{ opacity: 0, x: -20 }}
@@ -207,7 +255,8 @@ export default function Contact() {
               <input
                 type="text"
                 id="name"
-                name="name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 required
                 className="w-full px-4 py-3 bg-gray-900 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-purple-500 transition-colors"
               />
@@ -225,7 +274,8 @@ export default function Contact() {
               <input
                 type="email"
                 id="email"
-                name="email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 required
                 className="w-full px-4 py-3 bg-gray-900 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-purple-500 transition-colors"
               />
@@ -242,7 +292,8 @@ export default function Contact() {
               </label>
               <select
                 id="projectType"
-                name="projectType"
+                value={formData.projectType}
+                onChange={(e) => setFormData({ ...formData, projectType: e.target.value })}
                 className="w-full px-4 py-3 bg-gray-900 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-purple-500 transition-colors"
               >
                 <option value="">Choisir une option</option>
@@ -264,7 +315,8 @@ export default function Contact() {
               </label>
               <textarea
                 id="message"
-                name="message"
+                value={formData.message}
+                onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                 required
                 rows={6}
                 className="w-full px-4 py-3 bg-gray-900 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-purple-500 transition-colors resize-none"
@@ -275,27 +327,30 @@ export default function Contact() {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               type="submit"
-              className="w-full px-8 py-4 bg-white text-[#08131c] rounded-full font-medium hover:bg-gray-200 transition-colors flex items-center justify-center gap-2"
+              disabled={isSubmitting}
+              className="w-full px-8 py-4 bg-white text-[#08131c] rounded-full font-medium hover:bg-gray-200 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Envoyer ma demande
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <line x1="5" y1="12" x2="19" y2="12" />
-                <polyline points="12 5 19 12 12 19" />
-              </svg>
+              {isSubmitting ? "Envoi en cours..." : "Envoyer ma demande"}
+              {!isSubmitting && (
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                  <polyline points="12 5 19 12 12 19" />
+                </svg>
+              )}
             </motion.button>
 
             <p className="text-gray-500 text-sm">
-              Vos coordonnées sont utilisées pour répondre à votre demande. Évitez d'inclure des informations sensibles. L'envoi est traité par FormSubmit ; lors du premier message, une validation de l'adresse destinataire sera nécessaire.
+              Vos coordonnées sont utilisées pour répondre à votre demande. Évitez d'inclure des informations sensibles.
             </p>
           </motion.form>
         </motion.div>
